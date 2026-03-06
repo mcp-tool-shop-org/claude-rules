@@ -1,36 +1,38 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a> | <a href="README.ja.md">日本語</a>
+  <a href="README.md">English</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
-  <img src="logo.png" width="400" alt="claude-rules">
+  <img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/claude-rules/readme.png" width="400" alt="claude-rules">
 </p>
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/claude-rules/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/claude-rules/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/mcp-tool-shop-org/claude-rules"><img src="https://codecov.io/gh/mcp-tool-shop-org/claude-rules/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/claude-rules"><img src="https://img.shields.io/npm/v/@mcptoolshop/claude-rules" alt="npm"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+  <a href="https://mcp-tool-shop-org.github.io/claude-rules/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
-CLAUDE.md をダイエットしよう。
+CLAUDE.md ファイルを軽量化しましょう。
 
-`claude-rules` は [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 向けのディスパッチテーブルジェネレーターおよび命令ファイルオプティマイザーです。肥大化した命令ファイルを、小さなルーティングインデックス（常時ロード）とトピック別のルールファイル（オンデマンドロード）に分割し、セッションごとのコンテキストトークンを節約します。
+`claude-rules` は、[Claude Code](https://docs.anthropic.com/en/docs/claude-code) 用のディスパッチテーブルジェネレーターおよびインストラクションファイル最適化ツールです。 これは、肥大化したインストラクションファイルを、常にロードされる小さなルーティングインデックスと、必要に応じてロードされるトピック固有のルールファイルに分割し、セッションごとにコンテキストのトークン数を削減します。
 
-## 問題
+## 問題点
 
-CLAUDE.md ファイルは時間とともに肥大化します。すべての行が毎セッションでトークンを消費します。関連があろうとなかろうと。300行の命令ファイルは、モデルのすべての思考に対する静かな税金になります。
+CLAUDE.md ファイルは、時間の経過とともに肥大化します。 1行ごとに、セッションごとにトークンが消費されます。たとえ重要でなくても。 300行のインストラクションファイルは、モデルが持つすべての思考に対して、一種の負担となります。
 
 ## 解決策
 
-3つのレイヤー、曖昧さなし:
+3つのレイヤー、曖昧さはありません。
 
 | レイヤー | ファイル | ロード |
-|----------|----------|--------|
-| オペレーターコンソール | `CLAUDE.md` | 常時（軽量インデックス） |
-| ディスパッチテーブル | `.claude/rules/index.json` | 常時（機械可読） |
-| ルールファイル | `.claude/rules/*.md` | オンデマンド |
+|-------|------|--------|
+| オペレーターコンソール | `CLAUDE.md` | 常に（軽量インデックス） |
+| ディスパッチテーブル | `.claude/rules/index.json` | 常に（機械可読） |
+| ルールペイロード | `.claude/rules/*.md` | オンデマンド |
 
-各ルールファイルは、frontmatter としてルーティングメタデータを保持します:
+各ルールファイルは、フロントマターとして独自のルーティングメタデータを持ちます。
 
 ```markdown
 ---
@@ -48,21 +50,21 @@ triggers:
 CI minutes are finite...
 ```
 
-エージェントが「CI」や「workflow」に言及するタスクを検出すると、該当するルールファイルを読み込みます。残りはロードされません。
+エージェントが「CI」または「ワークフロー」に言及するタスクを検出すると、関連するルールファイルを読み込みます。 それ以外のファイルはロードされません。
 
 ## インストール
 
 ```bash
 npm install -g @mcptoolshop/claude-rules
-# または
+# or
 npx @mcptoolshop/claude-rules analyze
 ```
 
 ## 使い方
 
-### Analyze
+### 分析
 
-CLAUDE.md のセクションをスコアリングし、抽出可能な部分を確認:
+CLAUDE.md のセクションを評価し、抽出できるものを確認します。
 
 ```bash
 claude-rules analyze
@@ -89,30 +91,30 @@ Budget estimate:
   Savings:          91% per session
 ```
 
-### Split
+### 分割
 
-対話型の抽出 — 各セクションを抽出する前に承認します:
+インタラクティブな抽出：各セクションを抽出する前に、承認する必要があります。
 
 ```bash
-claude-rules split              # 対話モード
-claude-rules split --dry-run    # 書き込みなしのプレビュー
+claude-rules split              # interactive
+claude-rules split --dry-run    # preview without writing
 ```
 
-各抽出候補はプレビュー、推奨ファイル名、キーワード、優先度を表示します。それぞれを承認またはスキップします。
+提案された各抽出について、プレビュー、推奨されるファイル名、キーワード、および優先度が表示されます。 各項目を承認またはスキップできます。
 
-### Validate
+### 検証
 
-ルールディレクトリの健全性をチェック:
+ルールディレクトリの健全性をチェックします。
 
 ```bash
 claude-rules validate
 ```
 
-チェック項目: ファイル参照の欠落、孤立したルールファイル、frontmatter の乖離、ドメインルールの空キーワード、重複 ID。
+チェック項目： 参照ファイルの欠落、孤立したルールファイル、フロントマターの不整合、ドメインルールにおける空のキーワード、重複するID。
 
-### Stats
+### 統計
 
-システムの物理を確認:
+システムの動作状況を確認します。
 
 ```bash
 claude-rules stats
@@ -138,45 +140,45 @@ claude-rules stats
     Savings vs monolithic: 79%
 ```
 
-## 優先度レベル
+## 優先度
 
-| レベル | 動作 | 例 |
-|--------|------|-----|
-| `core` | 常に CLAUDE.md にインライン | "test is right until proven otherwise" |
-| `domain` | タスクのキーワードが一致したときにロード | CI 編集時の GitHub Actions ルール |
-| `manual` | 自動ロードされない、意図的な参照 | 知られていないプラットフォームの特殊事情 |
+| 優先度 | 動作 | 例 |
+|------|----------|---------|
+| `core` | 常に CLAUDE.md にインラインで記述 | 「証拠があるまで正しいと仮定する」 |
+| `domain` | タスクのキーワードに一致する場合にロード | CI の編集時に GitHub Actions のルールをロード |
+| `manual` | 自動ロードされず、明示的な参照が必要 | プラットフォーム固有の注意点 |
 
 ## ルーティングの仕組み
 
-エージェントは CLAUDE.md のディスパッチテーブルを参照し、2つのシグナルがルールファイルの読み込みを促します:
+エージェントは、CLAUDE.md にあるディスパッチテーブルを参照し、2つのシグナルによってルールファイルをロードするように促されます。
 
-1. **セマンティックマッチ** — タスクが "publishing" や "CI" に言及している
-2. **明示的な指示** — CLAUDE.md が「計画や編集の前にそのルールファイルを読め」と指示している
+1. **意味的な一致**：タスクが「公開」または「CI」に言及している。
+2. **明示的な指示**：CLAUDE.md が「計画または編集を行う前に、そのルールファイルを読み込んでください」と記述している。
 
-これはエージェントループ向けのヒントシステムであり、魔法ではありません。キーワードマッチングと明示的な指示の組み合わせにより、信頼性が確保されます。
+これは、エージェントのループに対するヒントシステムであり、魔法ではありません。 キーワードのマッチングと明示的な指示の組み合わせによって、信頼性が高まります。
 
-## 不変条件
+## 重要な点
 
-- 抽出された各セクションは CLAUDE.md に1行の要約を残す
-- すべての `domain`/`manual` ルールは `index.json` に存在する
-- すべての `core` ルールはインラインのまま（ファイルのみへの抽出は行わない）
-- Frontmatter が信頼の源; `index.json` は派生物
-- パーサーは ATX 見出し（`##`、`###`）でのみ分割
+- 抽出された各セクションは、CLAUDE.md に 1 行の概要を残します。
+- すべての `domain`/`manual` ルールは `index.json` に存在します。
+- すべての `core` ルールはインラインで保持され、ファイルにのみ抽出されることはありません。
+- フロントマターが真実の源であり、`index.json` はそれから派生します。
+- パーサーは、ATX ヘッダー (`##`, `###`) でのみ分割を行います。
 
 ## セキュリティ
 
-このツールはローカルの markdown および JSON ファイルの読み書きのみを行います。ネットワークリクエスト、テレメトリの収集、外部サービスへのアクセスは一切行いません。
+このツールは、ローカルの Markdown ファイルと JSON ファイルのみを読み書きします。 ネットワークリクエストを行ったり、テレメトリを収集したり、外部サービスにアクセスしたりすることはありません。
 
 ### 脅威モデル
 
-| 脅威 | 緩和策 |
-|------|--------|
-| 不適切な分割によるデータ損失 | 対話型の承認 + `--dry-run` モード |
-| 不正なルールファイル | `validate` コマンドがすべての構造的問題を検出 |
-| 古いインデックス | `validate` が frontmatter と index.json の乖離を検出 |
+| 脅威 | 対策 |
+|--------|------------|
+| 不適切な分割によるデータ損失 | インタラクティブな承認 + `--dry-run` モード |
+| 不正なルールファイル | `validate` コマンドで構造的な問題はすべて検出されます。 |
+| 古いインデックス | `validate` は、フロントマターと `index.json` の間の不整合を検出します。 |
 
-完全なセキュリティポリシーについては [SECURITY.md](SECURITY.md) を参照してください。
+完全なセキュリティポリシーについては、[SECURITY.md](SECURITY.md) を参照してください。
 
 ---
 
-[MCP Tool Shop](https://mcp-tool-shop.github.io/) 製
+[MCP Tool Shop](https://mcp-tool-shop.github.io/) が作成しました。

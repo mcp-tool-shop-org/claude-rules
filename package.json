@@ -1,6 +1,6 @@
 {
   "name": "@mcptoolshop/claude-rules",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Dispatch table generator and instruction-file optimizer for Claude Code. Put your CLAUDE.md on a diet.",
   "type": "module",
   "bin": {
@@ -10,6 +10,7 @@
     "build": "tsc",
     "verify": "tsc --noEmit && node --test dist/**/*.test.js",
     "test": "node --test dist/**/*.test.js",
+    "test:coverage": "c8 --reporter=lcov --reporter=text node --test dist/**/*.test.js",
     "prepublishOnly": "npm run build"
   },
   "files": [
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "c8": "^11.0.0",
     "typescript": "^5.7.0"
   },
   "dependencies": {

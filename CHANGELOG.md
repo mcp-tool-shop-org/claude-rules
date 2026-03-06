@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.3 — 2026-03-06
+
+- Brand logo URL (mcp-tool-shop-org/brand)
+- Code coverage via c8 + Codecov badge
+- Translations re-done via polyglot-mcp (TranslateGemma 12B)
+- SHIP_GATE.md and SCORECARD.md (shipcheck audit: 100% pass)
+- dependabot.yml (monthly, grouped)
+- .gitignore: site/.astro/, site/dist/, .polyglot-cache.json
+
+## 1.0.2 — 2026-03-06
+
+- Shipcheck gates added (SHIP_GATE.md, SCORECARD.md)
+- dependabot.yml
+
 ## 1.0.1 — 2026-03-06
 
 - Refactor: routing types and frontmatter moved to `@mcptoolshop/ai-loadout`
