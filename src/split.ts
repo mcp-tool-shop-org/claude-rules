@@ -65,6 +65,7 @@ export function generateRuleFile(
 export function generateIndex(
   accepted: SplitProposal[],
   coreTokens: number,
+  lazyLoad = false,
 ): RuleIndex {
   const entries: RuleEntry[] = accepted.map((p) => ({
     id: p.suggestedId,
@@ -95,6 +96,7 @@ export function generateIndex(
     generated: new Date().toISOString(),
     entries,
     budget,
+    ...(lazyLoad ? { lazyLoad: true } : {}),
   };
 }
 
@@ -104,6 +106,7 @@ export function generateClaudeMd(
   accepted: SplitProposal[],
   index: RuleIndex,
   rulesDir: string,
+  lazyLoad = false,
 ): string {
   const lines: string[] = [];
 
@@ -124,9 +127,15 @@ export function generateClaudeMd(
   lines.push(`Rules are split into topic files under \`${rulesDir}/\`.`);
   lines.push(`The dispatch table is at \`${rulesDir}/index.json\`.`);
   lines.push("");
-  lines.push(
-    "**When a task matches a domain rule's keywords, read that rule file before planning or editing.**",
-  );
+  if (lazyLoad) {
+    lines.push(
+      "**Rule files are NOT pre-loaded. When a task matches a domain rule's keywords, use the Read tool to load the rule file before planning or editing.**",
+    );
+  } else {
+    lines.push(
+      "**When a task matches a domain rule's keywords, read that rule file before planning or editing.**",
+    );
+  }
   lines.push("");
   lines.push("| Topic | Keywords | Priority | File |");
   lines.push("|-------|----------|----------|------|");
@@ -147,7 +156,8 @@ export function generateClaudeMd(
 // ── CLI command: split ─────────────────────────────────────────
 export async function cmdSplit(args: string[]): Promise<void> {
   const filePath = resolveClaudeMd(positionalArgs(args, ["--rules-dir", "--signals"]));
-  const rulesDir = flagValue(args, "--rules-dir") ?? ".claude/rules";
+  const lazyLoad = hasFlag(args, "--lazy");
+  const rulesDir = flagValue(args, "--rules-dir") ?? (lazyLoad ? ".claude/loadout" : ".claude/rules");
   const dryRun = hasFlag(args, "--dry-run");
   const yesMode = hasFlag(args, "--yes");
   const signals = loadSignals(flagValue(args, "--signals") ?? undefined);
@@ -255,7 +265,7 @@ export async function cmdSplit(args: string[]): Promise<void> {
   );
 
   // Generate index
-  const index = generateIndex(accepted, coreTokens);
+  const index = generateIndex(accepted, coreTokens, lazyLoad);
 
   // Generate lean CLAUDE.md
   const newClaudeMd = generateClaudeMd(
@@ -263,6 +273,7 @@ export async function cmdSplit(args: string[]): Promise<void> {
     accepted,
     index,
     rulesDir,
+    lazyLoad,
   );
 
   if (dryRun) {

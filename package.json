@@ -1,6 +1,6 @@
 {
   "name": "@mcptoolshop/claude-rules",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Dispatch table generator and instruction-file optimizer for Claude Code. Put your CLAUDE.md on a diet.",
   "type": "module",
   "bin": {

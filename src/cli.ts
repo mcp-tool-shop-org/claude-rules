@@ -78,7 +78,7 @@ export function positionalArgs(
     }
   }
   // Also skip boolean flags
-  const boolFlags = ["--memory", "--dry-run", "--help", "-h", "--yes"];
+  const boolFlags = ["--memory", "--dry-run", "--help", "-h", "--yes", "--lazy"];
   for (const bf of boolFlags) {
     const idx = args.indexOf(bf);
     if (idx !== -1) flagIndices.add(idx);
@@ -107,6 +107,7 @@ ${BOLD}Options:${RESET}
   --memory          Also process MEMORY.md (analyze, split)
   --dry-run         Show what would be generated without writing (split)
   --yes             Accept all proposals without prompting (split)
+  --lazy            Lazy-load rules: store in .claude/loadout/ (not auto-loaded)
   --signals <path>  Custom signals config path (default: .claude/signals.json)
   --rules-dir <p>   Custom rules directory (default: .claude/rules/)
   --version         Show version
@@ -116,6 +117,7 @@ ${BOLD}Examples:${RESET}
   claude-rules analyze .claude/CLAUDE.md
   claude-rules split --dry-run
   claude-rules split --yes
+  claude-rules split --lazy
   claude-rules init-signals
   claude-rules validate
   claude-rules stats

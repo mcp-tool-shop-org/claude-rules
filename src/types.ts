@@ -28,7 +28,9 @@ import type { Priority } from "@mcptoolshop/ai-loadout";
 // These aliases keep internal code readable in the CLAUDE.md context.
 import type { LoadoutEntry, LoadoutIndex } from "@mcptoolshop/ai-loadout";
 export type RuleEntry = LoadoutEntry;
-export type RuleIndex = LoadoutIndex;
+export interface RuleIndex extends LoadoutIndex {
+  lazyLoad?: boolean;
+}
 
 // ── A section detected by the parser ───────────────────────────
 export interface Section {

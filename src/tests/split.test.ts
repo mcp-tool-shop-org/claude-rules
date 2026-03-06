@@ -185,3 +185,63 @@ describe("generateClaudeMd", () => {
     assert.ok(output.includes("GitHub Actions Rules (Non-Negotiable)"));
   });
 });
+
+// ── Lazy loading ──────────────────────────────────────────────
+describe("generateIndex with lazyLoad", () => {
+  it("sets lazyLoad: true when enabled", () => {
+    const proposals = [makeProposal()];
+    const index = generateIndex(proposals, 200, true);
+
+    assert.equal(index.lazyLoad, true);
+  });
+
+  it("omits lazyLoad when disabled (default)", () => {
+    const proposals = [makeProposal()];
+    const index = generateIndex(proposals, 200);
+
+    assert.equal(index.lazyLoad, undefined);
+  });
+
+  it("omits lazyLoad when explicitly false", () => {
+    const proposals = [makeProposal()];
+    const index = generateIndex(proposals, 200, false);
+
+    assert.equal(index.lazyLoad, undefined);
+  });
+});
+
+describe("generateClaudeMd with lazyLoad", () => {
+  it("uses eager instruction text by default", () => {
+    const core: Section[] = [];
+    const accepted = [makeProposal()];
+    const index = generateIndex(accepted, 0);
+
+    const output = generateClaudeMd(core, accepted, index, ".claude/rules");
+
+    assert.ok(output.includes("When a task matches"));
+    assert.ok(!output.includes("NOT pre-loaded"));
+  });
+
+  it("uses lazy instruction text when lazyLoad is true", () => {
+    const core: Section[] = [];
+    const accepted = [makeProposal()];
+    const index = generateIndex(accepted, 0, true);
+
+    const output = generateClaudeMd(core, accepted, index, ".claude/loadout", true);
+
+    assert.ok(output.includes("NOT pre-loaded"));
+    assert.ok(output.includes("use the Read tool"));
+    assert.ok(output.includes(".claude/loadout"));
+  });
+
+  it("references loadout directory in lazy mode", () => {
+    const core: Section[] = [];
+    const accepted = [makeProposal({ suggestedPath: ".claude/loadout/github-actions.md" })];
+    const index = generateIndex(accepted, 0, true);
+
+    const output = generateClaudeMd(core, accepted, index, ".claude/loadout", true);
+
+    assert.ok(output.includes("`.claude/loadout/`"));
+    assert.ok(output.includes("`.claude/loadout/index.json`"));
+  });
+});

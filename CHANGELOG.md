@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 — 2026-03-06
+
+- Lazy loading toggle: `--lazy` flag on `split` stores rule files in `.claude/loadout/` instead of `.claude/rules/`
+- Lazy rule files are not auto-loaded by Claude Code — agent reads them on demand via dispatch table
+- `index.json` gains optional `lazyLoad: boolean` field
+- Generated CLAUDE.md instruction text adapts for eager vs lazy mode
+
 ## 1.0.3 — 2026-03-06
 
 - Brand logo URL (mcp-tool-shop-org/brand)
