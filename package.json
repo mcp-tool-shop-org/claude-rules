@@ -40,6 +40,6 @@
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "@mcptoolshop/ai-loadout": "^1.0.0"
+    "@mcptoolshop/ai-loadout": "^1.0.1"
   }
 }
