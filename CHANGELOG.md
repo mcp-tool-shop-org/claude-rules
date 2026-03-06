@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1 — 2026-03-06
+
+- Refactor: routing types and frontmatter moved to `@mcptoolshop/ai-loadout`
+- Fix: validate test fixtures updated for `entries` field (was `rules`)
+- Add SECURITY.md with security policy
+- Add logo
+- Fix README logo reference
+- Include SECURITY.md and logo.png in npm package
+
 ## 1.0.0 — 2026-03-06
 
 Initial release.
@@ -11,4 +20,4 @@ Initial release.
 - Frontmatter-based routing metadata (keywords, patterns, priority, triggers)
 - Dispatch table generation (`index.json`)
 - Three-tier priority system: core / domain / manual
-- Zero production dependencies
+- Depends on `@mcptoolshop/ai-loadout` for routing types and matching

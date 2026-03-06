@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/claude-rules/readme.png" width="400" alt="claude-rules">
+  <img src="logo.png" width="400" alt="claude-rules">
 </p>
 
 <p align="center">
@@ -170,6 +170,8 @@ This tool reads and writes local markdown and JSON files only. It does not make 
 | Data loss from bad split | Interactive approval + `--dry-run` mode |
 | Malformed rule files | `validate` command catches all structural issues |
 | Stale index | `validate` detects drift between frontmatter and index.json |
+
+See [SECURITY.md](SECURITY.md) for the full security policy.
 
 ---
 

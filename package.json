@@ -1,6 +1,6 @@
 {
   "name": "@mcptoolshop/claude-rules",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dispatch table generator and instruction-file optimizer for Claude Code. Put your CLAUDE.md on a diet.",
   "type": "module",
   "bin": {
@@ -16,7 +16,9 @@
     "dist",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "SECURITY.md",
+    "logo.png"
   ],
   "keywords": [
     "claude",
@@ -38,6 +40,6 @@
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "@mcptoolshop/ai-loadout": "file:../ai-loadout"
+    "@mcptoolshop/ai-loadout": "^1.0.0"
   }
 }

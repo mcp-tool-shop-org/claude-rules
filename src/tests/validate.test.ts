@@ -29,7 +29,7 @@ describe("validateRules", () => {
       JSON.stringify({
         version: "1.0.0",
         generated: new Date().toISOString(),
-        rules: [
+        entries: [
           {
             id: "ghost",
             path: ".claude/rules/ghost.md",
@@ -69,7 +69,7 @@ describe("validateRules", () => {
       JSON.stringify({
         version: "1.0.0",
         generated: new Date().toISOString(),
-        rules: [
+        entries: [
           {
             id: "bare",
             path: ".claude/rules/bare.md",
@@ -109,7 +109,7 @@ describe("validateRules", () => {
       JSON.stringify({
         version: "1.0.0",
         generated: new Date().toISOString(),
-        rules: [],
+        entries: [],
         budget: {
           always_loaded_est: 0,
           on_demand_total_est: 0,
@@ -137,7 +137,7 @@ describe("validateRules", () => {
       JSON.stringify({
         version: "1.0.0",
         generated: new Date().toISOString(),
-        rules: [
+        entries: [
           {
             id: "test",
             path: ".claude/rules/test.md",
@@ -177,7 +177,7 @@ describe("validateRules", () => {
       JSON.stringify({
         version: "1.0.0",
         generated: new Date().toISOString(),
-        rules: [
+        entries: [
           {
             id: "empty-kw",
             path: ".claude/rules/empty-kw.md",
@@ -217,7 +217,7 @@ describe("validateRules", () => {
       JSON.stringify({
         version: "1.0.0",
         generated: new Date().toISOString(),
-        rules: [
+        entries: [
           {
             id: "valid",
             path: ".claude/rules/valid.md",
