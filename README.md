@@ -180,6 +180,18 @@ This is a hint system for the agent loop, not magic. The combination of keyword 
 - Frontmatter is the source of truth; `index.json` is derived
 - The parser only splits on ATX headings (`##`, `###`)
 
+## Architecture
+
+claude-rules is a **Layer 2 adapter** in the Knowledge OS stack:
+
+| Layer | Package | Role |
+|-------|---------|------|
+| Kernel | `@mcptoolshop/ai-loadout` | Dispatch table, matching, resolver, agent runtime |
+| Adapter | `@mcptoolshop/claude-rules` | CLAUDE.md optimization |
+| Adapter | `@mcptoolshop/claude-memories` | MEMORY.md optimization |
+
+The dispatch tables produced by `split` are compatible with the kernel's resolver (`ai-loadout resolve`) and agent runtime (`planLoad`).
+
 ## Security
 
 This tool reads and writes local markdown and JSON files only. It does not make network requests, collect telemetry, or access any external services.

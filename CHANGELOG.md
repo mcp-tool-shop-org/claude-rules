@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 — 2026-03-06
+
+- Add Architecture section to README showing Knowledge OS stack position
+- Document compatibility with ai-loadout resolver and agent runtime
+
 ## 1.2.0 — 2026-03-06
 
 - Lazy loading toggle: `--lazy` flag on `split` stores rule files in `.claude/loadout/` instead of `.claude/rules/`
