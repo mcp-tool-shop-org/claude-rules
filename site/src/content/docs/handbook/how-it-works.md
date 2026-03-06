@@ -64,6 +64,18 @@ Content here...
 
 Frontmatter is the source of truth. The index is derived from it. If they drift, `validate` catches it.
 
+## Knowledge OS Architecture
+
+claude-rules is a **Layer 2 adapter** in the Knowledge OS stack:
+
+| Layer | Package | Role |
+|-------|---------|------|
+| Kernel | `@mcptoolshop/ai-loadout` | Dispatch table, matching, resolver, agent runtime |
+| Adapter | `@mcptoolshop/claude-rules` | CLAUDE.md optimization |
+| Adapter | `@mcptoolshop/claude-memories` | MEMORY.md optimization |
+
+The dispatch tables produced by `split` are compatible with the kernel's resolver (`ai-loadout resolve`) and agent runtime (`planLoad`).
+
 ## Invariants
 
 These always hold:

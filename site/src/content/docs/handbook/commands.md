@@ -29,6 +29,7 @@ claude-rules split [path]
 claude-rules split --dry-run       # preview without writing
 claude-rules split --yes           # accept all, no prompts (scriptable)
 claude-rules split --memory        # also include MEMORY.md sections
+claude-rules split --lazy          # store in .claude/loadout/ (not auto-loaded)
 claude-rules split --rules-dir .rules   # custom output directory
 ```
 
@@ -41,10 +42,12 @@ For each proposed extraction, you see:
 Use `--yes` for scripted/CI workflows. Writes are atomic — if anything fails, originals are untouched and CLAUDE.md is backed up to `.bak`.
 
 **Generates:**
-- `.claude/rules/<id>.md` — rule file with frontmatter
+- `.claude/rules/<id>.md` — rule file with frontmatter (or `.claude/loadout/` with `--lazy`)
 - `.claude/rules/index.json` — dispatch table
 - Updated `CLAUDE.md` — lean index with core rules and a routing table
 - `CLAUDE.md.bak` — backup of the original
+
+With `--lazy`, rule files are stored in `.claude/loadout/` instead of `.claude/rules/`. The agent reads them on demand via the dispatch table rather than Claude Code auto-loading them.
 
 ---
 
@@ -129,6 +132,7 @@ When no signals file exists, built-in defaults are used. Edit the generated file
 | `--memory` | Also process MEMORY.md (analyze, split) |
 | `--dry-run` | Preview without writing files (split); safety signal for validate |
 | `--yes` | Accept all proposals without prompting (split) |
+| `--lazy` | Store rule files in `.claude/loadout/` for on-demand loading (split) |
 | `--signals <path>` | Custom signals config path (default: `.claude/signals.json`) |
 | `--rules-dir <path>` | Custom rules directory (default: `.claude/rules/`) |
 | `--version` | Show version |
