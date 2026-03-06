@@ -1,55 +1,34 @@
-// ── Priority tiers ──────────────────────────────────────────────
-// core:   always inline in CLAUDE.md — violating these wrecks the repo
-// domain: keyword-triggered — agent loads when task matches
-// manual: never auto-loaded — deliberate lookup only
-export type Priority = "core" | "domain" | "manual";
+/**
+ * claude-rules types.
+ *
+ * Core routing types (LoadoutEntry, LoadoutIndex, Frontmatter, etc.)
+ * come from @mcptoolshop/ai-loadout. This file defines only the
+ * CLAUDE.md-specific types: sections, split proposals, analysis reports.
+ */
 
-// ── Trigger phases ─────────────────────────────────────────────
-// Controls WHEN a rule should be loaded relative to the agent loop.
-// v1 stores metadata only; v1.1 can act on it.
-export interface Triggers {
-  task: boolean;   // load during task interpretation
-  plan: boolean;   // load during plan formation
-  edit: boolean;   // load before file edits
-}
+// Re-export routing types so consumers don't need to import ai-loadout directly
+export type {
+  Priority,
+  Triggers,
+  LoadoutEntry,
+  LoadoutIndex,
+  Budget,
+  Frontmatter,
+  IssueSeverity,
+  ValidationIssue,
+} from "@mcptoolshop/ai-loadout";
 
-// ── Rule entry in the dispatch table ───────────────────────────
-export interface RuleEntry {
-  id: string;            // kebab-case, unique, stable once created
-  path: string;          // relative to repo root
-  keywords: string[];    // lowercase surface words for matching
-  patterns: string[];    // named intents (e.g. "ci_pipeline"), not regex
-  priority: Priority;
-  summary: string;       // <120 chars, dense routing signal
-  triggers: Triggers;
-  tokens_est: number;    // estimated tokens (chars / 4)
-  lines: number;         // line count of the rule file
-}
+export { DEFAULT_TRIGGERS } from "@mcptoolshop/ai-loadout";
 
-// ── Budget model ───────────────────────────────────────────────
-export interface Budget {
-  always_loaded_est: number;       // tokens in CLAUDE.md itself
-  on_demand_total_est: number;     // sum of all rule file tokens
-  avg_task_load_est: number;       // estimated average per session
-  avg_task_load_observed: number | null;  // from usage telemetry (v1.1)
-}
+// ── Local imports for use in this file's interfaces ────────────
+import type { Priority } from "@mcptoolshop/ai-loadout";
 
-// ── The dispatch table (.claude/rules/index.json) ──────────────
-export interface RuleIndex {
-  version: string;
-  generated: string;    // ISO 8601
-  rules: RuleEntry[];
-  budget: Budget;
-}
-
-// ── Frontmatter parsed from a rule file ────────────────────────
-export interface Frontmatter {
-  id: string;
-  keywords: string[];
-  patterns: string[];
-  priority: Priority;
-  triggers: Triggers;
-}
+// ── Aliases for backward compatibility ─────────────────────────
+// claude-rules originally used "RuleEntry" / "RuleIndex" naming.
+// These aliases keep internal code readable in the CLAUDE.md context.
+import type { LoadoutEntry, LoadoutIndex } from "@mcptoolshop/ai-loadout";
+export type RuleEntry = LoadoutEntry;
+export type RuleIndex = LoadoutIndex;
 
 // ── A section detected by the parser ───────────────────────────
 export interface Section {
@@ -85,20 +64,12 @@ export interface AnalysisReport {
   coreCandidate: Section[];     // sections that should stay inline
 }
 
-// ── Validation issue ───────────────────────────────────────────
-export type IssueSeverity = "error" | "warning";
-
-export interface ValidationIssue {
-  severity: IssueSeverity;
-  code: string;           // e.g. "ORPHAN_FILE", "MISSING_REF", "DRIFT"
+// ── Filesystem validation issue (extends ai-loadout's) ─────────
+// ai-loadout validates index structure; claude-rules adds filesystem checks.
+export interface FsValidationIssue {
+  severity: "error" | "warning";
+  code: string;
   message: string;
   file?: string;
   line?: number;
 }
-
-// ── Default triggers ───────────────────────────────────────────
-export const DEFAULT_TRIGGERS: Triggers = {
-  task: true,
-  plan: true,
-  edit: false,
-};

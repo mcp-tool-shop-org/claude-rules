@@ -15,14 +15,14 @@ import { resolve, join, relative } from "node:path";
 import { parseFrontmatter } from "./parser.js";
 import { log, ok, warn, info, fail, BOLD, DIM, RESET, RED, GREEN, YELLOW } from "./cli.js";
 import { positionalArgs, flagValue, hasFlag } from "./cli.js";
-import type { RuleIndex, RuleEntry, ValidationIssue } from "./types.js";
+import type { RuleIndex, RuleEntry, FsValidationIssue } from "./types.js";
 
 // ── Core validation logic ──────────────────────────────────────
 export function validateRules(
   rulesDir: string,
   repoRoot: string,
-): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+): FsValidationIssue[] {
+  const issues: FsValidationIssue[] = [];
   const absRulesDir = resolve(repoRoot, rulesDir);
   const indexPath = join(absRulesDir, "index.json");
 
@@ -53,7 +53,7 @@ export function validateRules(
 
   // Validate each rule entry
   const indexedFiles = new Set<string>();
-  for (const rule of index.rules) {
+  for (const rule of index.entries) {
     const absPath = resolve(repoRoot, rule.path);
     indexedFiles.add(rule.path);
 
@@ -162,7 +162,7 @@ export function validateRules(
   }
 
   // Check for duplicate IDs
-  const ids = index.rules.map((r) => r.id);
+  const ids = index.entries.map((r) => r.id);
   const seen = new Set<string>();
   for (const id of ids) {
     if (seen.has(id)) {
@@ -177,7 +177,7 @@ export function validateRules(
 
   // Check for duplicate keywords across rules (warning only — sometimes valid)
   const kwMap = new Map<string, string[]>();
-  for (const rule of index.rules) {
+  for (const rule of index.entries) {
     for (const kw of rule.keywords) {
       const existing = kwMap.get(kw) ?? [];
       existing.push(rule.id);

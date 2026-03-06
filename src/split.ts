@@ -64,7 +64,7 @@ function generateIndex(
   accepted: SplitProposal[],
   coreTokens: number,
 ): RuleIndex {
-  const rules: RuleEntry[] = accepted.map((p) => ({
+  const entries: RuleEntry[] = accepted.map((p) => ({
     id: p.suggestedId,
     path: p.suggestedPath,
     keywords: p.suggestedKeywords,
@@ -76,9 +76,9 @@ function generateIndex(
     lines: p.section.lines,
   }));
 
-  const onDemandTotal = rules.reduce((sum, r) => sum + r.tokens_est, 0);
-  const avgTaskLoad = rules.length > 0
-    ? Math.round(onDemandTotal / rules.length)
+  const onDemandTotal = entries.reduce((sum, r) => sum + r.tokens_est, 0);
+  const avgTaskLoad = entries.length > 0
+    ? Math.round(onDemandTotal / entries.length)
     : 0;
 
   const budget: Budget = {
@@ -91,7 +91,7 @@ function generateIndex(
   return {
     version: "1.0.0",
     generated: new Date().toISOString(),
-    rules,
+    entries,
     budget,
   };
 }
@@ -128,8 +128,8 @@ function generateClaudeMd(
   lines.push("");
   lines.push("| Topic | Keywords | Priority | File |");
   lines.push("|-------|----------|----------|------|");
-  for (let i = 0; i < index.rules.length; i++) {
-    const rule = index.rules[i];
+  for (let i = 0; i < index.entries.length; i++) {
+    const rule = index.entries[i];
     // Use the original heading as the topic name (clean and readable)
     const topic = accepted[i]?.section.heading ?? rule.id;
     const kw = rule.keywords.slice(0, 4).join(", ");

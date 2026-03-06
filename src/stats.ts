@@ -84,14 +84,14 @@ export async function cmdStats(args: string[]): Promise<void> {
   log("");
 
   // Rule files section
-  if (index.rules.length > 0) {
+  if (index.entries.length > 0) {
     log(`  ${BOLD}Rule files${RESET} (on-demand)`);
 
     // Recalculate actual tokens from file contents
     let totalOnDemandTokens = 0;
     let totalOnDemandLines = 0;
 
-    for (const rule of index.rules) {
+    for (const rule of index.entries) {
       const absPath = resolve(repoRoot, rule.path);
       let actualTokens = rule.tokens_est;
       let actualLines = rule.lines;
@@ -126,8 +126,8 @@ export async function cmdStats(args: string[]): Promise<void> {
     // Budget section
     const totalTokens = claudeMdTokens + totalOnDemandTokens;
     const avgTaskLoad =
-      index.rules.length > 0
-        ? Math.round(totalOnDemandTokens / index.rules.length)
+      index.entries.length > 0
+        ? Math.round(totalOnDemandTokens / index.entries.length)
         : 0;
 
     // Calculate savings vs monolithic (always-loaded + on-demand = what it used to be)
