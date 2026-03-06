@@ -69,6 +69,8 @@ Score your CLAUDE.md sections and see what can be extracted:
 ```bash
 claude-rules analyze
 claude-rules analyze .claude/CLAUDE.md
+claude-rules analyze --memory          # also analyze MEMORY.md
+claude-rules analyze --signals my.json # custom scoring signals
 ```
 
 ```
@@ -98,9 +100,11 @@ Interactive extraction — you approve each section before it's extracted:
 ```bash
 claude-rules split              # interactive
 claude-rules split --dry-run    # preview without writing
+claude-rules split --yes        # accept all, no prompts (scriptable)
+claude-rules split --memory     # also include MEMORY.md sections
 ```
 
-Each proposed extraction shows a preview, suggested filename, keywords, and priority. You approve or skip each one.
+Each proposed extraction shows a preview, suggested filename, keywords, and priority. You approve or skip each one. Use `--yes` for scripted/CI workflows. Writes are atomic — if anything fails, originals are untouched and CLAUDE.md is backed up to `.bak`.
 
 ### Validate
 
@@ -136,9 +140,20 @@ claude-rules stats
   Budget
     Always loaded:         320 tokens
     On-demand total:     1,200 tokens
-    Avg task load (est):   400 tokens
+    Avg task load (est):   420 tokens  (keyword-weighted)
     Savings vs monolithic: 79%
 ```
+
+### Init Signals
+
+Generate a default `signals.json` to customize how sections are scored:
+
+```bash
+claude-rules init-signals
+claude-rules init-signals --signals custom/path.json
+```
+
+The signals file controls three things: which words trigger domain classification (`domainSignals`), which words are filtered from keywords (`stopWords`), and which content patterns map to named intents (`patterns`). Edit the generated file to tune scoring for your project. When no signals file exists, built-in defaults are used.
 
 ## Priority Tiers
 
@@ -173,9 +188,10 @@ This tool reads and writes local markdown and JSON files only. It does not make 
 
 | Threat | Mitigation |
 |--------|------------|
-| Data loss from bad split | Interactive approval + `--dry-run` mode |
+| Data loss from bad split | Interactive approval + `--dry-run` + atomic writes with `.bak` backup |
 | Malformed rule files | `validate` command catches all structural issues |
 | Stale index | `validate` detects drift between frontmatter and index.json |
+| Partial write failure | Staging to temp dir; files copied only after all staging succeeds |
 
 See [SECURITY.md](SECURITY.md) for the full security policy.
 
