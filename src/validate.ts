@@ -202,6 +202,9 @@ export async function cmdValidate(args: string[]): Promise<void> {
   const rulesDir = flagValue(args, "--rules-dir") ?? ".claude/rules";
   const repoRoot = process.cwd();
 
+  if (hasFlag(args, "--dry-run")) {
+    info("validate is read-only — no files are modified.");
+  }
   info(`Validating ${rulesDir}/`);
   log("");
 

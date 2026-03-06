@@ -7,6 +7,7 @@ import { cmdAnalyze } from "./analyze.js";
 import { cmdSplit } from "./split.js";
 import { cmdValidate } from "./validate.js";
 import { cmdStats } from "./stats.js";
+import { cmdInitSignals } from "./signals.js";
 
 // ── Package metadata ───────────────────────────────────────────
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -77,7 +78,7 @@ export function positionalArgs(
     }
   }
   // Also skip boolean flags
-  const boolFlags = ["--memory", "--dry-run", "--help", "-h"];
+  const boolFlags = ["--memory", "--dry-run", "--help", "-h", "--yes"];
   for (const bf of boolFlags) {
     const idx = args.indexOf(bf);
     if (idx !== -1) flagIndices.add(idx);
@@ -99,11 +100,14 @@ ${BOLD}Commands:${RESET}
   split [path]      Interactive extraction → rule files + index.json
   validate [path]   Lint rules: refs, orphans, drift, invariants
   stats [path]      Token budget dashboard with savings %
+  init-signals      Generate a default signals.json for customizing scoring
   help              Show this help message
 
 ${BOLD}Options:${RESET}
   --memory          Also process MEMORY.md (analyze, split)
   --dry-run         Show what would be generated without writing (split)
+  --yes             Accept all proposals without prompting (split)
+  --signals <path>  Custom signals config path (default: .claude/signals.json)
   --rules-dir <p>   Custom rules directory (default: .claude/rules/)
   --version         Show version
 
@@ -111,6 +115,8 @@ ${BOLD}Examples:${RESET}
   claude-rules analyze
   claude-rules analyze .claude/CLAUDE.md
   claude-rules split --dry-run
+  claude-rules split --yes
+  claude-rules init-signals
   claude-rules validate
   claude-rules stats
 
@@ -147,6 +153,9 @@ async function main(): Promise<void> {
       break;
     case "stats":
       await cmdStats(cmdArgs);
+      break;
+    case "init-signals":
+      await cmdInitSignals(cmdArgs);
       break;
     default:
       fail(

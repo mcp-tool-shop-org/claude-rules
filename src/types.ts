@@ -73,3 +73,10 @@ export interface FsValidationIssue {
   file?: string;
   line?: number;
 }
+
+// ── Signals configuration (configurable scoring) ─────────────
+export interface SignalsConfig {
+  domainSignals: string[];
+  stopWords: string[];
+  patterns: Record<string, string[]>;
+}

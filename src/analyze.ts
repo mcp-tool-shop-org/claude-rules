@@ -9,29 +9,22 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseSections, estimateTokens, headingToId } from "./parser.js";
 import { log, ok, warn, info, BOLD, DIM, RESET, CYAN, YELLOW } from "./cli.js";
-import { hasFlag, positionalArgs } from "./cli.js";
-import type { Section, SplitProposal, AnalysisReport, Priority } from "./types.js";
+import { hasFlag, positionalArgs, flagValue } from "./cli.js";
+import { loadSignals, DEFAULT_SIGNALS } from "./signals.js";
+import type { Section, SplitProposal, AnalysisReport, Priority, SignalsConfig } from "./types.js";
 
 // ── Constants ──────────────────────────────────────────────────
 const CORE_THRESHOLD = 8;    // sections <= this many lines → lean toward core
 const EXTRACT_THRESHOLD = 15; // sections >= this many lines → lean toward extraction
 const NON_NEGOTIABLE_RE = /non-negotiable/i;
-const DOMAIN_SIGNALS = [
-  "github actions", "ci", "workflow", "runner",
-  "marketing", "site", "publishing", "automation",
-  "shipping", "publish", "release", "npm",
-  "ownership", "repo", "org", "canonical",
-  "preview", "verification", "dev server",
-  "shipcheck", "treatment", "landing page",
-  "product", "development", "output-first",
-  "guardian", "self-check",
-  "document delight",
-];
 
 // ── Keyword extraction ─────────────────────────────────────────
 // Extract likely routing keywords from a section's heading and content.
 // Grabs heading words + any capitalized/notable terms from the first few lines.
-export function extractKeywords(section: Section): string[] {
+export function extractKeywords(
+  section: Section,
+  signals: SignalsConfig = DEFAULT_SIGNALS,
+): string[] {
   const words = new Set<string>();
 
   // From heading
@@ -44,7 +37,7 @@ export function extractKeywords(section: Section): string[] {
 
   // From content — look for domain signal words
   const contentLower = section.content.toLowerCase();
-  for (const signal of DOMAIN_SIGNALS) {
+  for (const signal of signals.domainSignals) {
     if (contentLower.includes(signal)) {
       // Add each word of multi-word signals
       for (const w of signal.split(/\s+/)) {
@@ -54,13 +47,7 @@ export function extractKeywords(section: Section): string[] {
   }
 
   // Filter out generic stop words
-  const stopWords = new Set([
-    "the", "and", "for", "are", "but", "not", "you", "all",
-    "can", "had", "her", "was", "one", "our", "out", "has",
-    "this", "that", "with", "have", "from", "they", "been",
-    "must", "will", "each", "make", "like", "when", "never",
-    "only", "rule", "rules", "non", "negotiable",
-  ]);
+  const stopWords = new Set(signals.stopWords);
   return [...words].filter((w) => !stopWords.has(w));
 }
 
@@ -68,7 +55,10 @@ export function extractKeywords(section: Section): string[] {
 // Headings that should always stay inline regardless of domain signals.
 const ALWAYS_CORE_RE = /^role$/i;
 
-export function classifyPriority(section: Section): Priority {
+export function classifyPriority(
+  section: Section,
+  signals: SignalsConfig = DEFAULT_SIGNALS,
+): Priority {
   // Explicit core headings (e.g. "Role") — always inline
   if (ALWAYS_CORE_RE.test(section.heading.trim())) return "core";
 
@@ -87,7 +77,7 @@ export function classifyPriority(section: Section): Priority {
   // Medium sections — check for domain signals in the heading specifically
   // (not content, which can false-positive on common words)
   const headingLower = section.heading.toLowerCase();
-  for (const signal of DOMAIN_SIGNALS) {
+  for (const signal of signals.domainSignals) {
     if (headingLower.includes(signal)) return "domain";
   }
 
@@ -112,37 +102,29 @@ export function generateSummary(section: Section): string {
 
 // ── Pattern suggestions ────────────────────────────────────────
 // Suggest named intents based on section content.
-export function suggestPatterns(section: Section): string[] {
-  const patterns: string[] = [];
+export function suggestPatterns(
+  section: Section,
+  signals: SignalsConfig = DEFAULT_SIGNALS,
+): string[] {
+  const result: string[] = [];
   const lower = section.content.toLowerCase();
 
-  if (lower.includes("ci") || lower.includes("workflow") || lower.includes("github actions")) {
-    patterns.push("ci_pipeline");
-  }
-  if (lower.includes("publish") || lower.includes("release") || lower.includes("npm")) {
-    patterns.push("package_release");
-  }
-  if (lower.includes("marketing") || lower.includes("site") || lower.includes("landing page")) {
-    patterns.push("marketing_ops");
-  }
-  if (lower.includes("ownership") || lower.includes("canonical") || lower.includes("repo")) {
-    patterns.push("repo_governance");
-  }
-  if (lower.includes("preview") || lower.includes("dev server") || lower.includes("verification")) {
-    patterns.push("dev_workflow");
-  }
-  if (lower.includes("shipcheck") || lower.includes("ship_gate") || lower.includes("treatment")) {
-    patterns.push("quality_gate");
-  }
-  if (lower.includes("product") || lower.includes("output-first")) {
-    patterns.push("product_dev");
+  for (const [patternName, triggers] of Object.entries(signals.patterns)) {
+    if (triggers.some((t) => lower.includes(t))) {
+      result.push(patternName);
+    }
   }
 
-  return patterns;
+  return result;
 }
 
 // ── Analyze a file ─────────────────────────────────────────────
-export function analyzeFile(filePath: string, rulesDir: string): AnalysisReport {
+export function analyzeFile(
+  filePath: string,
+  rulesDir: string,
+  signals?: SignalsConfig,
+): AnalysisReport {
+  const cfg = signals ?? DEFAULT_SIGNALS;
   const content = readFileSync(filePath, "utf8");
   const sections = parseSections(content);
   const totalTokens = estimateTokens(content);
@@ -164,7 +146,7 @@ export function analyzeFile(filePath: string, rulesDir: string): AnalysisReport 
       continue;
     }
 
-    const priority = classifyPriority(section);
+    const priority = classifyPriority(section, cfg);
 
     if (priority === "core") {
       coreCandidate.push(section);
@@ -173,8 +155,8 @@ export function analyzeFile(filePath: string, rulesDir: string): AnalysisReport 
 
     // This section should be extracted
     const id = headingToId(section.heading);
-    const keywords = extractKeywords(section);
-    const patterns = suggestPatterns(section);
+    const keywords = extractKeywords(section, cfg);
+    const patterns = suggestPatterns(section, cfg);
     const summary = generateSummary(section);
 
     proposals.push({
@@ -205,10 +187,11 @@ export function analyzeFile(filePath: string, rulesDir: string): AnalysisReport 
 
 // ── CLI command: analyze ───────────────────────────────────────
 export async function cmdAnalyze(args: string[]): Promise<void> {
-  const filePath = resolveClaudeMd(positionalArgs(args, ["--rules-dir"]));
+  const filePath = resolveClaudeMd(positionalArgs(args, ["--rules-dir", "--signals"]));
   const rulesDir = hasFlag(args, "--rules-dir")
     ? args[args.indexOf("--rules-dir") + 1]
     : ".claude/rules";
+  const signals = loadSignals(flagValue(args, "--signals") ?? undefined);
 
   if (!existsSync(filePath)) {
     const { fail } = await import("./cli.js");
@@ -222,7 +205,7 @@ export async function cmdAnalyze(args: string[]): Promise<void> {
   info(`Analyzing ${CYAN}${filePath}${RESET}`);
   log("");
 
-  const report = analyzeFile(filePath, rulesDir);
+  const report = analyzeFile(filePath, rulesDir, signals);
 
   // Header
   log(
@@ -298,6 +281,41 @@ export async function cmdAnalyze(args: string[]): Promise<void> {
   log(`  Always loaded:    ~${coreTokens} tokens (${report.coreCandidate.reduce((s, c) => s + c.lines, 0)} lines)`);
   log(`  On-demand:        ~${extractTokens} tokens (${report.proposals.reduce((s, p) => s + p.section.lines, 0)} lines)`);
   log(`  ${BOLD}Savings:          ${savingsPct}% per session${RESET}`);
+
+  // Also process MEMORY.md if --memory flag is set
+  if (hasFlag(args, "--memory")) {
+    const memoryPath = resolveMemoryMd();
+    if (memoryPath) {
+      log("");
+      log(DIM + "─".repeat(60) + RESET);
+      log("");
+      info(`Also analyzing ${CYAN}${memoryPath}${RESET}`);
+      log("");
+      const memReport = analyzeFile(memoryPath, rulesDir, signals);
+      log(
+        `${BOLD}File:${RESET} ${memReport.filePath}  ${DIM}(${memReport.totalLines} lines, ~${memReport.totalTokens} tokens)${RESET}`,
+      );
+      log(`${BOLD}Detected sections:${RESET} ${memReport.sections.length}`);
+      for (const s of memReport.sections) {
+        const label =
+          s.level === 0
+            ? `${DIM}(preamble)${RESET}`
+            : `${"#".repeat(s.level)} ${s.heading}`;
+        log(`  L${String(s.startLine + 1).padStart(3)}  ${label}  ${DIM}${s.lines} lines, ~${s.tokens_est} tokens${RESET}`);
+      }
+      if (memReport.proposals.length > 0) {
+        log("");
+        log(`${BOLD}Proposed extractions:${RESET} ${memReport.proposals.length} sections`);
+        for (const p of memReport.proposals) {
+          log(`  → ${CYAN}${p.suggestedPath}${RESET}  ${DIM}${p.reason}${RESET}`);
+        }
+      } else {
+        log(`${DIM}  No sections to extract from MEMORY.md${RESET}`);
+      }
+    } else {
+      warn("No MEMORY.md found. Skipping --memory.");
+    }
+  }
 }
 
 // ── Resolve CLAUDE.md path ─────────────────────────────────────
@@ -314,4 +332,16 @@ export function resolveClaudeMd(positional: string[]): string {
     if (existsSync(c)) return c;
   }
   return candidates[0]; // will error at read time
+}
+
+// ── Resolve MEMORY.md path ────────────────────────────────────
+export function resolveMemoryMd(): string | null {
+  const candidates = [
+    resolve(".claude/MEMORY.md"),
+    resolve("MEMORY.md"),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return null;
 }

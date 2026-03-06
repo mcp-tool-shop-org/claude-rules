@@ -123,11 +123,24 @@ export async function cmdStats(args: string[]): Promise<void> {
     );
     log("");
 
-    // Budget section
+    // Budget section — weighted by keyword count
+    // Rules with more keywords are more likely to be triggered,
+    // so they contribute more to the average task load estimate.
     const totalTokens = claudeMdTokens + totalOnDemandTokens;
-    const avgTaskLoad =
-      index.entries.length > 0
-        ? Math.round(totalOnDemandTokens / index.entries.length)
+    const totalKeywords = index.entries.reduce((sum, r) => sum + Math.max(r.keywords.length, 1), 0);
+    const weightedTaskLoad =
+      totalKeywords > 0
+        ? Math.round(
+            index.entries.reduce((sum, r, i) => {
+              const absPath = resolve(repoRoot, r.path);
+              let tokens = r.tokens_est;
+              if (existsSync(absPath)) {
+                tokens = estimateTokens(readFileSync(absPath, "utf8"));
+              }
+              const weight = Math.max(r.keywords.length, 1) / totalKeywords;
+              return sum + tokens * weight;
+            }, 0),
+          )
         : 0;
 
     // Calculate savings vs monolithic (always-loaded + on-demand = what it used to be)
@@ -141,7 +154,7 @@ export async function cmdStats(args: string[]): Promise<void> {
     log(`  ${BOLD}Budget${RESET}`);
     log(`    Always loaded:         ${claudeMdTokens} tokens`);
     log(`    On-demand total:       ${totalOnDemandTokens} tokens`);
-    log(`    Avg task load (est):   ${avgTaskLoad} tokens`);
+    log(`    Avg task load (est):   ${weightedTaskLoad} tokens  ${DIM}(keyword-weighted)${RESET}`);
     if (index.budget.avg_task_load_observed !== null) {
       log(`    Avg task load (obs):   ${index.budget.avg_task_load_observed} tokens`);
     }

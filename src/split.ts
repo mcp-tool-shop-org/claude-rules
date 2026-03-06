@@ -10,13 +10,15 @@
  * 7. Runs validate internally
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { resolve, dirname, relative } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync, mkdtempSync } from "node:fs";
+import { resolve, dirname, relative, join } from "node:path";
 import { createInterface } from "node:readline";
-import { analyzeFile, resolveClaudeMd } from "./analyze.js";
+import { tmpdir } from "node:os";
+import { analyzeFile, resolveClaudeMd, resolveMemoryMd } from "./analyze.js";
 import { serializeFrontmatter, estimateTokens } from "./parser.js";
 import { log, ok, warn, info, fail, BOLD, DIM, RESET, CYAN, GREEN, YELLOW } from "./cli.js";
 import { hasFlag, positionalArgs, flagValue } from "./cli.js";
+import { loadSignals } from "./signals.js";
 import type {
   SplitProposal,
   RuleEntry,
@@ -42,7 +44,7 @@ async function prompt(question: string): Promise<string> {
 }
 
 // ── Generate a rule file with frontmatter ──────────────────────
-function generateRuleFile(
+export function generateRuleFile(
   proposal: SplitProposal,
 ): string {
   const fm: Frontmatter = {
@@ -60,7 +62,7 @@ function generateRuleFile(
 }
 
 // ── Generate index.json from accepted proposals ────────────────
-function generateIndex(
+export function generateIndex(
   accepted: SplitProposal[],
   coreTokens: number,
 ): RuleIndex {
@@ -97,7 +99,7 @@ function generateIndex(
 }
 
 // ── Generate the lean CLAUDE.md ────────────────────────────────
-function generateClaudeMd(
+export function generateClaudeMd(
   coreSections: Section[],
   accepted: SplitProposal[],
   index: RuleIndex,
@@ -144,9 +146,11 @@ function generateClaudeMd(
 
 // ── CLI command: split ─────────────────────────────────────────
 export async function cmdSplit(args: string[]): Promise<void> {
-  const filePath = resolveClaudeMd(positionalArgs(args, ["--rules-dir"]));
+  const filePath = resolveClaudeMd(positionalArgs(args, ["--rules-dir", "--signals"]));
   const rulesDir = flagValue(args, "--rules-dir") ?? ".claude/rules";
   const dryRun = hasFlag(args, "--dry-run");
+  const yesMode = hasFlag(args, "--yes");
+  const signals = loadSignals(flagValue(args, "--signals") ?? undefined);
 
   if (!existsSync(filePath)) {
     fail(
@@ -157,7 +161,19 @@ export async function cmdSplit(args: string[]): Promise<void> {
   }
 
   info(`Analyzing ${CYAN}${filePath}${RESET}`);
-  const report = analyzeFile(filePath, rulesDir);
+  const report = analyzeFile(filePath, rulesDir, signals);
+
+  // Also include MEMORY.md proposals when --memory is set
+  if (hasFlag(args, "--memory")) {
+    const memoryPath = resolveMemoryMd();
+    if (memoryPath) {
+      info(`Also analyzing ${CYAN}${memoryPath}${RESET}`);
+      const memReport = analyzeFile(memoryPath, rulesDir, signals);
+      report.proposals.push(...memReport.proposals);
+    } else {
+      warn("No MEMORY.md found. Skipping --memory.");
+    }
+  }
 
   if (report.proposals.length === 0) {
     ok("Nothing to split — all sections are already lean enough.");
@@ -206,6 +222,13 @@ export async function cmdSplit(args: string[]): Promise<void> {
     if (dryRun) {
       info("(dry run — would extract)");
       accepted.push(p);
+      log("");
+      continue;
+    }
+
+    if (yesMode) {
+      accepted.push(p);
+      ok(`Accepted "${p.section.heading}"`);
       log("");
       continue;
     }
@@ -260,27 +283,86 @@ export async function cmdSplit(args: string[]): Promise<void> {
     return;
   }
 
-  // Write files
+  // ── Atomic write phase ──────────────────────────────────────
   const absRulesDir = resolve(dirname(filePath), "..", rulesDir);
-  mkdirSync(absRulesDir, { recursive: true });
 
-  // Write rule files
-  for (const p of accepted) {
-    const absPath = resolve(dirname(filePath), "..", p.suggestedPath);
-    mkdirSync(dirname(absPath), { recursive: true });
-    const content = generateRuleFile(p);
-    writeFileSync(absPath, content, "utf8");
-    ok(`${p.suggestedPath}`);
+  interface FileWrite {
+    dest: string;
+    content: string;
   }
 
-  // Write index.json
-  const indexPath = resolve(absRulesDir, "index.json");
-  writeFileSync(indexPath, JSON.stringify(index, null, 2) + "\n", "utf8");
-  ok(`${rulesDir}/index.json`);
+  const writes: FileWrite[] = [];
 
-  // Write new CLAUDE.md
-  writeFileSync(filePath, newClaudeMd, "utf8");
-  ok(`Rewrote ${relative(process.cwd(), filePath)}`);
+  // Collect all file writes
+  for (const p of accepted) {
+    const absPath = resolve(dirname(filePath), "..", p.suggestedPath);
+    writes.push({ dest: absPath, content: generateRuleFile(p) });
+  }
+
+  // index.json
+  writes.push({
+    dest: resolve(absRulesDir, "index.json"),
+    content: JSON.stringify(index, null, 2) + "\n",
+  });
+
+  // New CLAUDE.md
+  writes.push({ dest: filePath, content: newClaudeMd });
+
+  // Stage all writes to temp directory
+  const stagingDir = mkdtempSync(join(tmpdir(), "claude-rules-split-"));
+
+  try {
+    // Write all files to staging
+    for (let i = 0; i < writes.length; i++) {
+      writeFileSync(join(stagingDir, `file-${i}`), writes[i].content, "utf8");
+    }
+
+    // All staging writes succeeded — backup original CLAUDE.md
+    const backupPath = resolve(dirname(filePath), "CLAUDE.md.bak");
+    if (existsSync(filePath)) {
+      copyFileSync(filePath, backupPath);
+      info(`Backed up ${relative(process.cwd(), filePath)} → CLAUDE.md.bak`);
+    }
+
+    // Ensure directories exist
+    mkdirSync(absRulesDir, { recursive: true });
+    for (const w of writes) {
+      mkdirSync(dirname(w.dest), { recursive: true });
+    }
+
+    // Copy from staging to final destinations
+    for (let i = 0; i < writes.length; i++) {
+      try {
+        copyFileSync(join(stagingDir, `file-${i}`), writes[i].dest);
+      } catch (copyErr) {
+        const failedDest = relative(process.cwd(), writes[i].dest);
+        warn(`Split failed writing ${failedDest}. Original CLAUDE.md backed up to CLAUDE.md.bak.`);
+        warn(`Error: ${(copyErr as Error).message}`);
+        process.exitCode = 1;
+        return;
+      }
+    }
+
+    // Report success
+    for (const p of accepted) {
+      ok(`${p.suggestedPath}`);
+    }
+    ok(`${rulesDir}/index.json`);
+    ok(`Rewrote ${relative(process.cwd(), filePath)}`);
+
+  } catch (err) {
+    warn(`Split failed during staging. Original files unchanged.`);
+    warn(`Error: ${(err as Error).message}`);
+    process.exitCode = 1;
+    return;
+  } finally {
+    // Always clean up staging directory
+    try {
+      rmSync(stagingDir, { recursive: true, force: true });
+    } catch {
+      // Best-effort cleanup
+    }
+  }
 
   log("");
   log(`${BOLD}Split complete.${RESET}`);

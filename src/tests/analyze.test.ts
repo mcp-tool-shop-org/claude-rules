@@ -1,10 +1,15 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
   extractKeywords,
   classifyPriority,
   generateSummary,
   suggestPatterns,
+  analyzeFile,
+  resolveMemoryMd,
 } from "../analyze.js";
 import type { Section } from "../types.js";
 
@@ -128,5 +133,30 @@ describe("suggestPatterns", () => {
     const section = makeSection("Notes", "## Notes\nSome random thoughts here.");
     const patterns = suggestPatterns(section);
     assert.equal(patterns.length, 0);
+  });
+});
+
+describe("analyzeFile with --memory content", () => {
+  it("analyzes a MEMORY.md-like file and proposes extractions", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "analyze-mem-"));
+    const memPath = join(tmp, "MEMORY.md");
+    const content = [
+      "# Memory",
+      "",
+      "## GitHub Actions Incident",
+      "Feb 2026, $130 burn, cost-saving rules.",
+      ...Array(12).fill("Detail line."),
+      "",
+      "## Short Note",
+      "Just a quick thing.",
+    ].join("\n");
+    writeFileSync(memPath, content, "utf8");
+
+    const report = analyzeFile(memPath, ".claude/rules");
+    // The long section should be proposed for extraction
+    assert.ok(report.proposals.length >= 1);
+    assert.ok(report.proposals.some((p) => p.suggestedId.includes("github-actions")));
+    // The short note should stay core
+    assert.ok(report.coreCandidate.some((s) => s.heading === "Short Note"));
   });
 });
